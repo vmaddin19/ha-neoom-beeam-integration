@@ -1,1 +1,693 @@
+###############################################################################
+# Neoom BEAAM – Home Assistant Integration
+# Datei: neoom_beaam_configuration.yaml
+#
+# Einbinden als Package in configuration.yaml:
+#   homeassistant:
+#     packages:
+#       neoom: !include packages/neoom.yaml
+#
+# secrets.yaml Eintrag (PFLICHT):
+#   neoom_beaam_token: "Bearer sk_beaam_DEIN_TOKEN_HIER"
+###############################################################################
+rest:
+  ##############################################################################
+  # BLOCK 1: Site State – Energie-Übersicht
+  # Endpunkt: GET /api/v1/site/state
+  ##############################################################################
+  - resource: "http://192.168.xxx.yyy/api/v1/site/state"
+    headers:
+      Authorization: !secret neoom_beaam_token
+      Content-Type: "application/json"
+    method: GET
+    scan_interval: 10
+    sensor:
 
+      - name: "Neoom PV Leistung"
+        unique_id: "neoom_power_production"
+        value_template: >
+          {{ value_json['energyFlow']['states']
+             | selectattr('key', 'eq', 'POWER_PRODUCTION')
+             | map(attribute='value') | first | default(0) | round(0) }}
+        unit_of_measurement: "W"
+        device_class: power
+        state_class: measurement
+        icon: "mdi:solar-power"
+
+      - name: "Neoom Hausverbrauch"
+        unique_id: "neoom_power_consumption_calc"
+        value_template: >
+          {{ value_json['energyFlow']['states']
+             | selectattr('key', 'eq', 'POWER_CONSUMPTION_CALC')
+             | map(attribute='value') | first | default(0) | round(0) }}
+        unit_of_measurement: "W"
+        device_class: power
+        state_class: measurement
+        icon: "mdi:home-lightning-bolt"
+
+      - name: "Neoom Netzbezug"
+        unique_id: "neoom_power_grid_import"
+        # Positiv = Bezug aus dem Netz, Negativ = Einspeisung ins Netz
+        value_template: >
+          {{ value_json['energyFlow']['states']
+             | selectattr('key', 'eq', 'POWER_GRID')
+             | map(attribute='value') | first | default(0) | round(0) }}
+        unit_of_measurement: "W"
+        device_class: power
+        state_class: measurement
+        icon: "mdi:transmission-tower"
+
+      - name: "Neoom Batterie Leistung"
+        unique_id: "neoom_power_storage"
+        # Positiv = Laden, Negativ = Entladen
+        value_template: >
+          {{ value_json['energyFlow']['states']
+             | selectattr('key', 'eq', 'POWER_STORAGE')
+             | map(attribute='value') | first | default(0) | round(0) }}
+        unit_of_measurement: "W"
+        device_class: power
+        state_class: measurement
+        icon: "mdi:battery-charging"
+
+      - name: "Neoom Batterie Ladestand"
+        unique_id: "neoom_state_of_charge"
+        value_template: >
+          {{ value_json['energyFlow']['states']
+             | selectattr('key', 'eq', 'STATE_OF_CHARGE')
+             | map(attribute='value') | first | default(0) | round(1) }}
+        unit_of_measurement: "%"
+        device_class: battery
+        state_class: measurement
+        icon: "mdi:battery"
+
+      - name: "Neoom Autarkie"
+        unique_id: "neoom_self_sufficiency"
+        value_template: >
+          {{ value_json['energyFlow']['states']
+             | selectattr('key', 'eq', 'SELF_SUFFICIENCY')
+             | map(attribute='value') | first | default(0) | round(1) }}
+        unit_of_measurement: "%"
+        device_class: power_factor
+        state_class: measurement
+        icon: "mdi:leaf"
+
+      - name: "Neoom Energie Erzeugt"
+        unique_id: "neoom_energy_produced"
+        value_template: >
+          {{ value_json['energyFlow']['states']
+             | selectattr('key', 'eq', 'ENERGY_PRODUCED')
+             | map(attribute='value') | first | default(0) | round(0) }}
+        unit_of_measurement: "Wh"
+        device_class: energy
+        state_class: total_increasing
+        icon: "mdi:solar-panel"
+
+      - name: "Neoom Energie Verbraucht"
+        unique_id: "neoom_energy_consumed_calc"
+        value_template: >
+          {{ value_json['energyFlow']['states']
+             | selectattr('key', 'eq', 'ENERGY_CONSUMED_CALC')
+             | map(attribute='value') | first | default(0) | round(0) }}
+        unit_of_measurement: "Wh"
+        device_class: energy
+        state_class: total_increasing
+        icon: "mdi:home-lightning-bolt-outline"
+
+      - name: "Neoom Energie Eingespeist"
+        unique_id: "neoom_energy_exported"
+        value_template: >
+          {{ value_json['energyFlow']['states']
+             | selectattr('key', 'eq', 'ENERGY_EXPORTED')
+             | map(attribute='value') | first | default(0) | round(0) }}
+        unit_of_measurement: "Wh"
+        device_class: energy
+        state_class: total_increasing
+        icon: "mdi:transmission-tower-export"
+
+      - name: "Neoom Energie Bezogen"
+        unique_id: "neoom_energy_imported"
+        value_template: >
+          {{ value_json['energyFlow']['states']
+             | selectattr('key', 'eq', 'ENERGY_IMPORTED')
+             | map(attribute='value') | first | default(0) | round(0) }}
+        unit_of_measurement: "Wh"
+        device_class: energy
+        state_class: total_increasing
+        icon: "mdi:transmission-tower-import"
+
+      - name: "Neoom Batterie Geladen"
+        unique_id: "neoom_energy_charged"
+        value_template: >
+          {{ value_json['energyFlow']['states']
+             | selectattr('key', 'eq', 'ENERGY_CHARGED')
+             | map(attribute='value') | first | default(0) | round(0) }}
+        unit_of_measurement: "Wh"
+        device_class: energy
+        state_class: total_increasing
+        icon: "mdi:battery-plus"
+
+      - name: "Neoom Batterie Entladen"
+        unique_id: "neoom_energy_discharged"
+        value_template: >
+          {{ value_json['energyFlow']['states']
+             | selectattr('key', 'eq', 'ENERGY_DISCHARGED')
+             | map(attribute='value') | first | default(0) | round(0) }}
+        unit_of_measurement: "Wh"
+        device_class: energy
+        state_class: total_increasing
+        icon: "mdi:battery-minus"
+
+  ##############################################################################
+  # BLOCK 2: PV-Thing – String-Daten (DC-Strings)
+  # Typ: PV  |  Thing-ID: cf2735a5-028b-4a4d-a017-60ebe066067f
+  # INPUTS_POWER / VOLTAGES / CURRENTS sind NUMBER_ARRAY[] → Zugriff per Index
+  ##############################################################################
+  - resource: "http://192.168.xxx.xxx/api/v1/things/cf2735a5-028b-4a4d-a017-60ebe066067f/states"
+    headers:
+      Authorization: !secret neoom_beaam_token
+      Content-Type: "application/json"
+    method: GET
+    scan_interval: 10
+    sensor:
+
+      # --- String 1 (Index 0 in VOLTAGES / CURRENTS Arrays) ---
+      # Hinweis: Kein INPUTS_POWER-Array vorhanden → Leistung = U × I
+
+      - name: "Neoom String 1 Spannung"
+        unique_id: "neoom_pv_string1_voltage"
+        # VOLTAGES[0] → String 1 DC-Spannung
+        value_template: >
+          {% set arr = value_json['states'] | selectattr('key', 'eq', 'VOLTAGES') | map(attribute='value') | list %}
+          {{ arr[0][0] | default(0) | round(1) if arr | length > 0 else 0 }}
+        unit_of_measurement: "V"
+        device_class: voltage
+        state_class: measurement
+        icon: "mdi:lightning-bolt"
+
+      - name: "Neoom String 1 Strom"
+        unique_id: "neoom_pv_string1_current"
+        # CURRENTS[0] → String 1 DC-Strom
+        value_template: >
+          {% set arr = value_json['states'] | selectattr('key', 'eq', 'CURRENTS') | map(attribute='value') | list %}
+          {{ arr[0][0] | default(0) | round(2) if arr | length > 0 else 0 }}
+        unit_of_measurement: "A"
+        device_class: current
+        state_class: measurement
+        icon: "mdi:current-dc"
+
+      - name: "Neoom String 1 Leistung"
+        unique_id: "neoom_pv_string1_power"
+        # P = U × I
+        value_template: >
+          {% set uarr = value_json['states'] | selectattr('key', 'eq', 'VOLTAGES') | map(attribute='value') | list %}
+          {% set iarr = value_json['states'] | selectattr('key', 'eq', 'CURRENTS') | map(attribute='value') | list %}
+          {% set u = uarr[0][0] | default(0) | float if uarr | length > 0 else 0 %}
+          {% set i = iarr[0][0] | default(0) | float if iarr | length > 0 else 0 %}
+          {{ (u * i) | round(0) }}
+        unit_of_measurement: "W"
+        device_class: power
+        state_class: measurement
+        icon: "mdi:solar-panel-large"
+
+      # --- String 2 (Index 1 in VOLTAGES / CURRENTS Arrays) ---
+
+      - name: "Neoom String 2 Spannung"
+        unique_id: "neoom_pv_string2_voltage"
+        # VOLTAGES[1] → String 2 DC-Spannung
+        value_template: >
+          {% set arr = value_json['states'] | selectattr('key', 'eq', 'VOLTAGES') | map(attribute='value') | list %}
+          {{ arr[0][1] | default(0) | round(1) if arr | length > 0 else 0 }}
+        unit_of_measurement: "V"
+        device_class: voltage
+        state_class: measurement
+        icon: "mdi:lightning-bolt"
+
+      - name: "Neoom String 2 Strom"
+        unique_id: "neoom_pv_string2_current"
+        # CURRENTS[1] → String 2 DC-Strom
+        value_template: >
+          {% set arr = value_json['states'] | selectattr('key', 'eq', 'CURRENTS') | map(attribute='value') | list %}
+          {{ arr[0][1] | default(0) | round(2) if arr | length > 0 else 0 }}
+        unit_of_measurement: "A"
+        device_class: current
+        state_class: measurement
+        icon: "mdi:current-dc"
+
+      - name: "Neoom String 2 Leistung"
+        unique_id: "neoom_pv_string2_power"
+        # P = U × I
+        value_template: >
+          {% set uarr = value_json['states'] | selectattr('key', 'eq', 'VOLTAGES') | map(attribute='value') | list %}
+          {% set iarr = value_json['states'] | selectattr('key', 'eq', 'CURRENTS') | map(attribute='value') | list %}
+          {% set u = uarr[0][1] | default(0) | float if uarr | length > 0 else 0 %}
+          {% set i = iarr[0][1] | default(0) | float if iarr | length > 0 else 0 %}
+          {{ (u * i) | round(0) }}
+        unit_of_measurement: "W"
+        device_class: power
+        state_class: measurement
+        icon: "mdi:solar-panel-large"
+
+      # --- PV Gesamt ---
+
+      - name: "Neoom PV Gesamtleistung"
+        unique_id: "neoom_pv_total_power"
+        # ACTIVE_POWER = AC-seitige Gesamtleistung nach Wechselrichter-Wandlung
+        value_template: >
+          {{ value_json['states']
+             | selectattr('key', 'eq', 'ACTIVE_POWER')
+             | map(attribute='value') | first | default(0) | round(0) }}
+        unit_of_measurement: "W"
+        device_class: power
+        state_class: measurement
+        icon: "mdi:solar-power-variant"
+
+      - name: "Neoom PV DC Leistung"
+        unique_id: "neoom_pv_dc_power"
+        # POWER = DC-Eingangsleistung gesamt (vor Wandlung)
+        value_template: >
+          {{ value_json['states']
+             | selectattr('key', 'eq', 'POWER')
+             | map(attribute='value') | first | default(0) | round(0) }}
+        unit_of_measurement: "W"
+        device_class: power
+        state_class: measurement
+        icon: "mdi:solar-panel"
+
+      - name: "Neoom PV Erzeugte Energie"
+        unique_id: "neoom_pv_produced_energy"
+        value_template: >
+          {{ value_json['states']
+             | selectattr('key', 'eq', 'PRODUCED_ENERGY')
+             | map(attribute='value') | first | default(0) | round(0) }}
+        unit_of_measurement: "Wh"
+        device_class: energy
+        state_class: total_increasing
+        icon: "mdi:solar-panel"      
+
+  ##############################################################################
+  # BLOCK 3: INVERTER-Thing – Wechselrichter
+  # Typ: INVERTER  |  Thing-ID: 0e07029a-cc69-493d-a6fe-cffcbd1b0561
+  ##############################################################################
+  - resource: "http://192.168.xxx.xxx/api/v1/things/0e07029a-cc69-493d-a6fe-cffcbd1b0561/states"
+    headers:
+      Authorization: !secret neoom_beaam_token
+      Content-Type: "application/json"
+    method: GET
+    scan_interval: 10
+    sensor:
+
+      - name: "Neoom Wechselrichter Wirkleistung"
+        unique_id: "neoom_inverter_active_power"
+        value_template: >
+          {{ value_json['states']
+             | selectattr('key', 'eq', 'ACTIVE_POWER')
+             | map(attribute='value') | first | default(0) | round(0) }}
+        unit_of_measurement: "W"
+        device_class: power
+        state_class: measurement
+        icon: "mdi:solar-power-variant"
+
+      - name: "Neoom Wechselrichter Blindleistung"
+        unique_id: "neoom_inverter_reactive_power"
+        value_template: >
+          {{ value_json['states']
+             | selectattr('key', 'eq', 'REACTIVE_POWER')
+             | map(attribute='value') | first | default(0) | round(0) }}
+        unit_of_measurement: "VAr"
+        device_class: reactive_power
+        state_class: measurement
+        icon: "mdi:sine-wave"
+
+      - name: "Neoom Wechselrichter Erzeugte Energie"
+        unique_id: "neoom_inverter_produced_energy"
+        value_template: >
+          {{ value_json['states']
+             | selectattr('key', 'eq', 'PRODUCED_ENERGY')
+             | map(attribute='value') | first | default(0) | round(0) }}
+        unit_of_measurement: "Wh"
+        device_class: energy
+        state_class: total_increasing
+        icon: "mdi:counter"
+
+      - name: "Neoom Wechselrichter Status"
+        unique_id: "neoom_inverter_state_code"
+        value_template: >
+          {{ value_json['states']
+             | selectattr('key', 'eq', 'STATE_CODE')
+             | map(attribute='value') | first | default('unknown') }}
+        icon: "mdi:information-outline"
+
+      - name: "Neoom Wechselrichter Verbindung"
+        unique_id: "neoom_inverter_connection"
+        value_template: >
+          {{ value_json['states']
+             | selectattr('key', 'eq', 'CONNECTION')
+             | map(attribute='value') | first | default(false) }}
+        icon: "mdi:check-network"
+
+  ##############################################################################
+  # BLOCK 4: BATTERY-Thing – Batterie
+  # Typ: BATTERY  |  Thing-ID: 0eb84721-5482-4ad4-9e57-4c26d6ee2229
+  ##############################################################################
+  - resource: "http://192.168.xxx.xxx/api/v1/things/0eb84721-5482-4ad4-9e57-4c26d6ee2229/states"
+    headers:
+      Authorization: !secret neoom_beaam_token
+      Content-Type: "application/json"
+    method: GET
+    scan_interval: 10
+    sensor:
+
+      - name: "Neoom Batterie Spannung"
+        unique_id: "neoom_battery_voltage"
+        value_template: >
+          {{ value_json['states']
+             | selectattr('key', 'eq', 'VOLTAGE')
+             | map(attribute='value') | first | default(0) | round(1) }}
+        unit_of_measurement: "V"
+        device_class: voltage
+        state_class: measurement
+        icon: "mdi:lightning-bolt"
+
+      - name: "Neoom Batterie Strom"
+        unique_id: "neoom_battery_current"
+        value_template: >
+          {{ value_json['states']
+             | selectattr('key', 'eq', 'CURRENT')
+             | map(attribute='value') | first | default(0) | round(2) }}
+        unit_of_measurement: "A"
+        device_class: current
+        state_class: measurement
+        icon: "mdi:current-dc"
+
+      - name: "Neoom Batterie Wirkleistung"
+        unique_id: "neoom_battery_active_power"
+        # Positiv = Laden, Negativ = Entladen
+        value_template: >
+          {{ value_json['states']
+             | selectattr('key', 'eq', 'ACTIVE_POWER')
+             | map(attribute='value') | first | default(0) | round(0) }}
+        unit_of_measurement: "W"
+        device_class: power
+        state_class: measurement
+        icon: "mdi:battery-charging"
+
+      - name: "Neoom Batterie SOC"
+        unique_id: "neoom_battery_soc_thing"
+        value_template: >
+          {{ value_json['states']
+             | selectattr('key', 'eq', 'STATE_OF_CHARGE')
+             | map(attribute='value') | first | default(0) | round(1) }}
+        unit_of_measurement: "%"
+        device_class: battery
+        state_class: measurement
+        icon: "mdi:battery"
+
+      - name: "Neoom Batterie Geladene Energie"
+        unique_id: "neoom_battery_charged_energy"
+        value_template: >
+          {{ value_json['states']
+             | selectattr('key', 'eq', 'CHARGED_ENERGY')
+             | map(attribute='value') | first | default(0) | round(0) }}
+        unit_of_measurement: "Wh"
+        device_class: energy
+        state_class: total_increasing
+        icon: "mdi:battery-plus"
+
+      - name: "Neoom Batterie Entladene Energie"
+        unique_id: "neoom_battery_discharged_energy"
+        value_template: >
+          {{ value_json['states']
+             | selectattr('key', 'eq', 'DISCHARGED_ENERGY')
+             | map(attribute='value') | first | default(0) | round(0) }}
+        unit_of_measurement: "Wh"
+        device_class: energy
+        state_class: total_increasing
+        icon: "mdi:battery-minus"
+
+      - name: "Neoom Batterie Betriebsmodus"
+        unique_id: "neoom_battery_operating_mode"
+        value_template: >
+          {{ value_json['states']
+             | selectattr('key', 'eq', 'OPERATING_MODE')
+             | map(attribute='value') | first | default('unknown') }}
+        icon: "mdi:cog"
+
+      - name: "Neoom Batterie Min SOC"
+        unique_id: "neoom_battery_min_soc"
+        value_template: >
+          {{ value_json['states']
+             | selectattr('key', 'eq', 'MIN_SOC')
+             | map(attribute='value') | first | default(0) | round(0) }}
+        unit_of_measurement: "%"
+        icon: "mdi:battery-low"
+
+  ##############################################################################
+  # BLOCK 5: ELECTRICITY_METER_AC – Netzzähler
+  # Typ: ELECTRICITY_METER_AC  |  Thing-ID: 51071d8d-3663-4799-8652-00452be62b0a
+  ##############################################################################
+  - resource: "http://192.168.xxx.xxx/api/v1/things/51071d8d-3663-4799-8652-00452be62b0a/states"
+    headers:
+      Authorization: !secret neoom_beaam_token
+      Content-Type: "application/json"
+    method: GET
+    scan_interval: 10
+    sensor:
+
+      - name: "Neoom Zähler Wirkleistung"
+        unique_id: "neoom_meter_active_power"
+        # Positiv = Bezug, Negativ = Einspeisung
+        value_template: >
+          {{ value_json['states']
+             | selectattr('key', 'eq', 'ACTIVE_POWER')
+             | map(attribute='value') | first | default(0) | round(0) }}
+        unit_of_measurement: "W"
+        device_class: power
+        state_class: measurement
+        icon: "mdi:transmission-tower"
+
+      - name: "Neoom Zähler Bezug"
+        unique_id: "neoom_meter_input_energy"
+        value_template: >
+          {{ value_json['states']
+             | selectattr('key', 'eq', 'INPUT_ENERGY')
+             | map(attribute='value') | first | default(0) | round(0) }}
+        unit_of_measurement: "Wh"
+        device_class: energy
+        state_class: total_increasing
+        icon: "mdi:transmission-tower-import"
+
+      - name: "Neoom Zähler Einspeisung"
+        unique_id: "neoom_meter_output_energy"
+        value_template: >
+          {{ value_json['states']
+             | selectattr('key', 'eq', 'OUTPUT_ENERGY')
+             | map(attribute='value') | first | default(0) | round(0) }}
+        unit_of_measurement: "Wh"
+        device_class: energy
+        state_class: total_increasing
+        icon: "mdi:transmission-tower-export"
+
+      - name: "Neoom Zähler Phase 1 Leistung"
+        unique_id: "neoom_meter_power_p1"
+        value_template: >
+          {{ value_json['states']
+             | selectattr('key', 'eq', 'POWER_P1')
+             | map(attribute='value') | first | default(0) | round(0) }}
+        unit_of_measurement: "W"
+        device_class: power
+        state_class: measurement
+        icon: "mdi:numeric-1-circle"
+
+      - name: "Neoom Zähler Phase 2 Leistung"
+        unique_id: "neoom_meter_power_p2"
+        value_template: >
+          {{ value_json['states']
+             | selectattr('key', 'eq', 'POWER_P2')
+             | map(attribute='value') | first | default(0) | round(0) }}
+        unit_of_measurement: "W"
+        device_class: power
+        state_class: measurement
+        icon: "mdi:numeric-2-circle"
+
+      - name: "Neoom Zähler Phase 3 Leistung"
+        unique_id: "neoom_meter_power_p3"
+        value_template: >
+          {{ value_json['states']
+             | selectattr('key', 'eq', 'POWER_P3')
+             | map(attribute='value') | first | default(0) | round(0) }}
+        unit_of_measurement: "W"
+        device_class: power
+        state_class: measurement
+        icon: "mdi:numeric-3-circle"
+
+      - name: "Neoom Zähler Spannung L1"
+        unique_id: "neoom_meter_voltage_p1"
+        value_template: >
+          {{ value_json['states']
+             | selectattr('key', 'eq', 'VOLTAGE_P1')
+             | map(attribute='value') | first | default(0) | round(1) }}
+        unit_of_measurement: "V"
+        device_class: voltage
+        state_class: measurement
+        icon: "mdi:lightning-bolt"
+
+      - name: "Neoom Zähler Frequenz"
+        unique_id: "neoom_meter_frequency"
+        value_template: >
+          {{ value_json['states']
+             | selectattr('key', 'eq', 'FREQUENCY')
+             | map(attribute='value') | first | default(0) | round(2) }}
+        unit_of_measurement: "Hz"
+        device_class: frequency
+        state_class: measurement
+        icon: "mdi:sine-wave"
+
+##############################################################################
+# Template-Sensoren (abgeleitet, kein extra API-Aufruf)
+# WICHTIG: template: ist ein eigener Top-Level-Key – NICHT unter rest: einrücken
+##############################################################################
+template:
+  - sensor:
+
+      # Netzbezug (nur positive Werte)
+      - name: "Neoom Netz Import"
+        unique_id: "neoom_grid_import_w"
+        state: >
+          {% set v = states('sensor.neoom_netzbezug') | float(0) %}
+          {{ [v, 0] | max | round(0) }}
+        unit_of_measurement: "W"
+        device_class: power
+        state_class: measurement
+        icon: "mdi:home-import-outline"
+
+      # Netzeinspeisung (nur positive Werte)
+      - name: "Neoom Netz Export"
+        unique_id: "neoom_grid_export_w"
+        state: >
+          {% set v = states('sensor.neoom_netzbezug') | float(0) %}
+          {{ [v * -1, 0] | max | round(0) }}
+        unit_of_measurement: "W"
+        device_class: power
+        state_class: measurement
+        icon: "mdi:home-export-outline"
+
+      # Batterie laden (nur positive Werte)
+      - name: "Neoom Batterie Laden"
+        unique_id: "neoom_battery_charge_w"
+        state: >
+          {% set v = states('sensor.neoom_batterie_leistung') | float(0) %}
+          {{ [v, 0] | max | round(0) }}
+        unit_of_measurement: "W"
+        device_class: power
+        state_class: measurement
+        icon: "mdi:battery-charging-high"
+
+      # Batterie entladen (nur positive Werte)
+      - name: "Neoom Batterie Entladen Aktuell"
+        unique_id: "neoom_battery_discharge_w"
+        state: >
+          {% set v = states('sensor.neoom_batterie_leistung') | float(0) %}
+          {{ [v * -1, 0] | max | round(0) }}
+        unit_of_measurement: "W"
+        device_class: power
+        state_class: measurement
+        icon: "mdi:battery-arrow-down"
+
+      # PV Leistung in kW
+      - name: "Neoom PV Leistung kW"
+        unique_id: "neoom_power_production_kw"
+        state: >
+          {{ (states('sensor.neoom_pv_leistung') | float(0) / 1000) | round(2) }}
+        unit_of_measurement: "kW"
+        device_class: power
+        state_class: measurement
+        icon: "mdi:solar-power-variant"
+
+      # Prozentualer Anteil String 1 an Gesamtleistung
+      - name: "Neoom String 1 Anteil"
+        unique_id: "neoom_string1_share"
+        state: >
+          {% set s1 = states('sensor.neoom_string_1_leistung') | float(0) %}
+          {% set s2 = states('sensor.neoom_string_2_leistung') | float(0) %}
+          {% set total = s1 + s2 %}
+          {{ ((s1 / total * 100) | round(1)) if total > 0 else 0 }}
+        unit_of_measurement: "%"
+        icon: "mdi:percent"
+
+      # Prozentualer Anteil String 2 an Gesamtleistung
+      - name: "Neoom String 2 Anteil"
+        unique_id: "neoom_string2_share"
+        state: >
+          {% set s1 = states('sensor.neoom_string_1_leistung') | float(0) %}
+          {% set s2 = states('sensor.neoom_string_2_leistung') | float(0) %}
+          {% set total = s1 + s2 %}
+          {{ ((s2 / total * 100) | round(1)) if total > 0 else 0 }}
+        unit_of_measurement: "%"
+        icon: "mdi:percent"
+
+        # ── String Auslastung ────────────────────────────────────────────────────
+      - name: "Neoom String 1 Auslastung"
+        unique_id: "neoom_string1_auslastung"
+        state: >
+          {% set leistung = states('sensor.neoom_string_1_leistung') | float(0) %}
+          {{ [(leistung / 3115 * 100) | round(1), 100] | min }}
+        unit_of_measurement: "%"
+        icon: "mdi:percent"
+        state_class: measurement
+
+      - name: "Neoom String 2 Auslastung"
+        unique_id: "neoom_string2_auslastung"
+        state: >
+          {% set leistung = states('sensor.neoom_string_2_leistung') | float(0) %}
+          {{ [(leistung / 6675 * 100) | round(1), 100] | min }}
+        unit_of_measurement: "%"
+        icon: "mdi:percent"
+        state_class: measurement
+
+      # ── Notstromreserve kWh-Anzeige (Batteriekapazitaet = 7,1 kWh) ─────────
+      # 8% Systemreserve fest eingebaut → nutzbar = 92% = 6,532 kWh
+ 
+      - name: "Neoom Notstrom Reserve kWh"
+        unique_id: "neoom_notstrom_reserve_kwh"
+        state: >
+          {% set reserve_pct = states('input_number.neoom_notstrom_reserve') | float(20) %}
+          {{ (7.1 * reserve_pct / 100) | round(2) }}
+        unit_of_measurement: "kWh"
+        icon: "mdi:battery-alert"
+ 
+      - name: "Neoom Optimierung kWh"
+        unique_id: "neoom_optimierung_kwh"
+        state: >
+          {% set reserve_pct = states('input_number.neoom_notstrom_reserve') | float(20) %}
+          {% set system_pct = 8 %}
+          {% set optimierung_pct = [92 - reserve_pct, 0] | max %}
+          {{ (7.1 * optimierung_pct / 100) | round(2) }}
+        unit_of_measurement: "kWh"
+        icon: "mdi:battery-check"
+        # Ein paar Sensoren in Kwh
+      - name: "Neoom Energie Erzeugt kWh"
+        unique_id: "neoom_energy_produced_kwh"
+        state: >
+          {{ (states('sensor.neoom_energy_erzeugt') | float(0) / 1000) | round(2) }}
+        unit_of_measurement: "kWh"
+        device_class: energy
+        state_class: total_increasing
+        icon: "mdi:solar-panel"
+
+      - name: "Neoom Energie Eingespeist kWh"
+        unique_id: "neoom_energy_exported_kwh"
+        state: >
+          {{ (states('sensor.neoom_energie_eingespeist') | float(0) / 1000) | round(2) }}
+        unit_of_measurement: "kWh"
+        device_class: energy
+        state_class: total_increasing
+        icon: "mdi:transmission-tower-export"
+
+      - name: "Neoom Energie Bezogen kWh"
+        unique_id: "neoom_energy_imported_kwh"
+        state: >
+          {{ (states('sensor.neoom_energie_bezogen') | float(0) / 1000) | round(2) }}
+        unit_of_measurement: "kWh"
+        device_class: energy
+        state_class: total_increasing
+        icon: "mdi:transmission-tower-import"
