@@ -1,1 +1,27 @@
+###############################################################################
+# Neoom – Notstromreserve Steuerung
+#
+###############################################################################
 
+input_number:
+
+  neoom_notstrom_reserve:
+    name: "Neoom Notstrom Reserve"
+    icon: mdi:battery-alert
+    min: 0
+    max: 92
+    step: 1
+    initial: 20
+    unit_of_measurement: "%"
+
+
+rest_command:
+
+  neoom_set_notstrom_reserve:
+    url: "http://192.168.100.56/api/v1/things/0eb84721-5482-4ad4-9e57-4c26d6ee2229/commands"
+    method: POST
+    headers:
+      Authorization: !secret neoom_beaam_token
+      Content-Type: "application/json"
+    payload: '[{"key": "MIN_SOC_SELF_CONSUMPTION_OPT", "value": {{ value }}}]'
+    content_type: "application/json"
