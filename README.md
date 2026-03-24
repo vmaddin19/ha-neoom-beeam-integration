@@ -108,7 +108,7 @@ Das Dashboard besteht aus **5 Views**:
   </tr>
   <tr>
     <td><img src="Sample/Batterie.png" width="400"/></td>
-    <td><img src="Sample/Netzzähler" width="400"/></td>
+    <td><img src="Sample/Netzzähler.png" width="400"/></td>
   </tr>
 </table>
 
