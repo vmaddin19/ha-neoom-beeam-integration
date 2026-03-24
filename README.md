@@ -131,6 +131,30 @@ Das Dashboard besteht aus **5 Views**:
 | `sensor.neoom_string_1_auslastung` | String 1 Auslastung (% von 3.115 Wp) | % |
 | `sensor.neoom_string_2_*` | analog String 2 (max 6.675 Wp) | — |
 
+Bei den DC-String-Sensoren muss ggf. die Peak-Leistung angepasst werden, also 3115 und 6675 Wp gilt nur für meine Strings ;-)
+
+```yaml
+# neoom.yaml
+        # ── String Auslastung ────────────────────────────────────────────────────
+      - name: "Neoom String 1 Auslastung"
+        unique_id: "neoom_string1_auslastung"
+        state: >
+          {% set leistung = states('sensor.neoom_string_1_leistung') | float(0) %}
+          {{ [(leistung / 3115 * 100) | round(1), 100] | min }}
+        unit_of_measurement: "%"
+        icon: "mdi:percent"
+        state_class: measurement
+
+      - name: "Neoom String 2 Auslastung"
+        unique_id: "neoom_string2_auslastung"
+        state: >
+          {% set leistung = states('sensor.neoom_string_2_leistung') | float(0) %}
+          {{ [(leistung / 6675 * 100) | round(1), 100] | min }}
+        unit_of_measurement: "%"
+        icon: "mdi:percent"
+        state_class: measurement
+```
+
 ### Einsparungen (Template-Sensoren)
 
 | Entity | Beschreibung | Einheit |
