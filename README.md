@@ -73,7 +73,7 @@ config/
 ├── secrets.yaml                    ← Token eintragen
 ```
 
-Inhalte aus `neoom_einsparungs_sensoren.yaml` und `neoom_notstrom_config.yaml` in `packages/neoom.yaml` einfügen (siehe Abschnitt [Dateiübersicht](#dateiübersicht)).
+Inhalte aus `neoom_einsparungs_sensoren.yaml` und `neoom_notstrom_config.yaml` in `packages/neoom.yaml` einfügen (siehe Abschnitt [Dateiübersicht](#dateiübersicht)). Bitte auf die richtige IP und Thing-IDs in den YAML-Dateien achten.
 
 ### 4. HA neu starten
 
@@ -147,7 +147,7 @@ Das Dashboard besteht aus **5 Views**:
 
 ## 🔋 Notstromreserve steuern
 
-Die Notstromreserve kann direkt über einen Dashboard-Slider gesetzt werden.
+Die Notstromreserve kann direkt über einen Dashboard-Slider gesetzt werden. Bitte die Gesamtkapazität der Batterie anpassen. Die aktuelle Konfiguration ist für 2 Batteriemodule
 
 ### Technische Details
 
