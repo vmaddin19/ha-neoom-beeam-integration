@@ -5,6 +5,7 @@ Eine vollständige Home Assistant Integration für das **Neoom BEAAM** Energiema
 ![YAML](https://img.shields.io/badge/Config-YAML-orange)
 ![License](https://img.shields.io/badge/License-MIT-green)
 ![HACS](https://img.shields.io/badge/HACS-not%20required-brightgreen)
+[![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-Donate-yellow?logo=buymeacoffee)](https://www.buymeacoffee.com/vmaddin)
 
 ---
 ## 📋 Inhaltsverzeichnis
@@ -258,3 +259,6 @@ curl http://192.168.X.X/api/v1/site/configuration \
 MIT License – frei verwendbar, anpassbar und weiterzugeben.
 
 ---
+<a href="https://www.buymeacoffee.com/vmaddin" target="_blank">
+  <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" width="200">
+</a>
