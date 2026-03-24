@@ -18,7 +18,7 @@ input_number:
 rest_command:
 
   neoom_set_notstrom_reserve:
-    url: "http://192.168.100.56/api/v1/things/0eb84721-5482-4ad4-9e57-4c26d6ee2229/commands"
+    url: "http://192.168.xxx.xxx/api/v1/things/0eb84721-5482-4ad4-9e57-4c26d6ee2229/commands"
     method: POST
     headers:
       Authorization: !secret neoom_beaam_token
