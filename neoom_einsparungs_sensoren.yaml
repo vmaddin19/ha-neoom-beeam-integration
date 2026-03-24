@@ -1,1 +1,93 @@
+     # ── Einsparungen ────────────────────────────────────────────────────────
 
+      - name: "Neoom Ersparnis Eigenverbrauch"
+        unique_id: "neoom_ersparnis_eigenverbrauch"
+        state: >
+          {% set erzeugt_wh     = states('sensor.neoom_energy_erzeugt') | float(0) %}
+          {% set eingespeist_wh = states('sensor.neoom_energie_eingespeist') | float(0) %}
+          {% set eigenverbrauch_kwh = (erzeugt_wh - eingespeist_wh) / 1000 %}
+          {% set strompreis = states('input_number.arbeitspreis') | float(0) %}
+          {{ (eigenverbrauch_kwh * strompreis) | round(2) }}
+        unit_of_measurement: "EUR"
+        icon: "mdi:home-lightning-bolt"
+        state_class: total_increasing
+
+      - name: "Neoom Erloese Einspeisung"
+        unique_id: "neoom_erloese_einspeisung"
+        state: >
+          {% set eingespeist_wh = states('sensor.neoom_energie_eingespeist') | float(0) %}
+          {% set eingespeist_kwh = eingespeist_wh / 1000 %}
+          {% set verguetung = states('input_number.einspeiseverguetung') | float(0) %}
+          {{ (eingespeist_kwh * verguetung) | round(2) }}
+        unit_of_measurement: "EUR"
+        icon: "mdi:transmission-tower-export"
+        state_class: total_increasing
+
+      # Gesamtersparnis: direkt berechnet (kein Verweis auf andere Template-Sensoren)
+      - name: "Neoom Ersparnis Gesamt"
+        unique_id: "neoom_ersparnis_gesamt"
+        state: >
+          {% set erzeugt_wh     = states('sensor.neoom_energy_erzeugt') | float(0) %}
+          {% set eingespeist_wh = states('sensor.neoom_energie_eingespeist') | float(0) %}
+          {% set eigenverbrauch_kwh = (erzeugt_wh - eingespeist_wh) / 1000 %}
+          {% set eingespeist_kwh = eingespeist_wh / 1000 %}
+          {% set strompreis = states('input_number.arbeitspreis') | float(0) %}
+          {% set verguetung = states('input_number.einspeiseverguetung') | float(0) %}
+          {{ ((eigenverbrauch_kwh * strompreis) + (eingespeist_kwh * verguetung)) | round(2) }}
+        unit_of_measurement: "EUR"
+        icon: "mdi:cash-multiple"
+        state_class: total_increasing
+
+      - name: "Neoom Amortisation Prozent"
+        unique_id: "neoom_amortisation_prozent"
+        state: >
+          {% set erzeugt_wh     = states('sensor.neoom_energy_erzeugt') | float(0) %}
+          {% set eingespeist_wh = states('sensor.neoom_energie_eingespeist') | float(0) %}
+          {% set eigenverbrauch_kwh = (erzeugt_wh - eingespeist_wh) / 1000 %}
+          {% set eingespeist_kwh = eingespeist_wh / 1000 %}
+          {% set strompreis  = states('input_number.arbeitspreis') | float(0) %}
+          {% set verguetung  = states('input_number.einspeiseverguetung') | float(0) %}
+          {% set investition = states('input_number.anlagenkosten') | float(1) %}
+          {% set gesamt = (eigenverbrauch_kwh * strompreis) + (eingespeist_kwh * verguetung) %}
+          {{ [(gesamt / investition * 100) | round(1), 100] | min }}
+        unit_of_measurement: "%"
+        icon: "mdi:chart-line"
+        state_class: measurement
+
+      - name: "Neoom Ruecklage Eigenverbrauch"
+        unique_id: "neoom_ruecklage_eigenverbrauch"
+        state: >
+          {% set erzeugt_wh     = states('sensor.neoom_energy_erzeugt') | float(0) %}
+          {% set eingespeist_wh = states('sensor.neoom_energie_eingespeist') | float(0) %}
+          {% set eigenverbrauch_kwh = (erzeugt_wh - eingespeist_wh) / 1000 %}
+          {% set strompreis = states('input_number.arbeitspreis') | float(0) %}
+          {% set monate = [now().month, 1] | max %}
+          {{ ((eigenverbrauch_kwh / monate) * strompreis) | round(2) }}
+        unit_of_measurement: "EUR"
+        icon: "mdi:home-lightning-bolt-outline"
+
+      - name: "Neoom Ruecklage Einspeisung"
+        unique_id: "neoom_ruecklage_einspeisung"
+        state: >
+          {% set eingespeist_wh = states('sensor.neoom_energie_eingespeist') | float(0) %}
+          {% set eingespeist_kwh = eingespeist_wh / 1000 %}
+          {% set verguetung = states('input_number.einspeiseverguetung') | float(0) %}
+          {% set monate = [now().month, 1] | max %}
+          {{ ((eingespeist_kwh / monate) * verguetung) | round(2) }}
+        unit_of_measurement: "EUR"
+        icon: "mdi:solar-power"
+
+      # Gesamtruecklage: direkt berechnet
+      - name: "Neoom Ruecklage Monat"
+        unique_id: "neoom_ruecklage_monat"
+        state: >
+          {% set erzeugt_wh     = states('sensor.neoom_energy_erzeugt') | float(0) %}
+          {% set eingespeist_wh = states('sensor.neoom_energie_eingespeist') | float(0) %}
+          {% set eigenverbrauch_kwh = (erzeugt_wh - eingespeist_wh) / 1000 %}
+          {% set eingespeist_kwh = eingespeist_wh / 1000 %}
+          {% set strompreis = states('input_number.arbeitspreis') | float(0) %}
+          {% set verguetung  = states('input_number.einspeiseverguetung') | float(0) %}
+          {% set monate = [now().month, 1] | max %}
+          {{ (((eigenverbrauch_kwh / monate) * strompreis) + ((eingespeist_kwh / monate) * verguetung)) | round(2) }}
+        unit_of_measurement: "EUR"
+        icon: "mdi:bank-transfer"
