@@ -100,6 +100,19 @@ Das Dashboard besteht aus **5 Views**:
 | 🔋 Batterie | Notstromreserve-Slider, SOC, Spannung, Strom, Verlauf |
 | 🔌 Netzzähler | Wirkleistung, Phasen L1/L2/L3, Spannungen, Frequenz, Verlauf |
 
+
+<table>
+  <tr>
+    <td><img src="Sample/Echtzeit.png" width="400"/></td>
+    <td><img src="Sample/DC-Strings.png" width="400"/></td>
+  </tr>
+  <tr>
+    <td><img src="Sample/Batterie.png" width="400"/></td>
+    <td><img src="Sample/Netzzähler" width="400"/></td>
+  </tr>
+</table>
+
+
 ---
 
 ## 📡 Sensoren
