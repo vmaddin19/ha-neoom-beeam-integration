@@ -1,5 +1,5 @@
 #  Neoom BEAAM – Home Assistant Integration
-Eine vollständige Home Assistant Integration für das **Neoom BEAAM** Energiemanagementsystem – ohne HACS, ohne externe Abhängigkeiten, nur mit nativen HA-Mitteln.
+Eine vollständige Home Assistant Integration für das Neoom BEAAM Energiemanagementsystem – ohne HACS, ohne externe Abhängigkeiten, nur mit nativen HA-Mitteln.
 
 ![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2024.x-blue?logo=homeassistant)
 ![YAML](https://img.shields.io/badge/Config-YAML-orange)
@@ -12,14 +12,14 @@ Eine vollständige Home Assistant Integration für das **Neoom BEAAM** Energiema
 
 - [Features](#features)
 - [Voraussetzungen](#voraussetzungen)
+- [Dateistruktur](#dateistruktur)
 - [Installation](#installation)
 - [Dashboard](#dashboard)
 - [Sensoren](#sensoren)
+- [Einsparungsberechnung](#einsparungsberechnung)
 - [Notstromreserve steuern](#notstromreserve-steuern)
+- [Tages- und Monatswerte](#tages--und-monatswerte)
 - [Bekannte Eigenheiten der API](#bekannte-eigenheiten-der-api)
-- [Dateiübersicht](#dateiübersicht)
-
----
 
 ---
 
@@ -27,8 +27,9 @@ Eine vollständige Home Assistant Integration für das **Neoom BEAAM** Energiema
 
 - **Echtzeit Energiefluss** – PV-Leistung, Hausverbrauch, Netzbezug/-einspeisung, Batterie
 - **DC String Übersicht** – Spannung, Strom, Leistung und Auslastung (% von Wp) für String 1 & 2
-- **Einsparungsberechnung** – Eigenverbrauchsersparnis, Einspeiseerlöse, Amortisation, monatliche Rücklage
-- **Batterie Details** – SOC, Spannung, Strom, Betriebs­modus, geladene/entladene Energie
+- **Einsparungsberechnung** – Eigenverbrauchsersparnis, Einspeiseerlöse, Amortisation
+- **Tages-, Monats-, Vormonats- und Gesamtwerte** via `utility_meter`
+- **Batterie Details** – SOC, Spannung, Strom, Betriebsmodus, geladene/entladene Energie
 - **Netzzähler** – Wirkleistung, Phasen L1/L2/L3, Netzfrequenz
 - **Notstromreserve** – Lesen & Schreiben direkt über die BEAAM API per Dashboard-Slider
 - **Kein HACS erforderlich** – ausschließlich native HA-Cards (entity, gauge, history-graph)
@@ -37,82 +38,70 @@ Eine vollständige Home Assistant Integration für das **Neoom BEAAM** Energiema
 
 ## 🔧 Voraussetzungen
 
-- Home Assistant (getestet ab 2024.x)
-- Neoom BEAAM ist im lokalen Netzwerk erreichbar
+- Home Assistant (getestet ab 2026.x)
+- Neoom BEAAM im lokalen Netzwerk erreichbar
 - BEAAM API Token (`sk_beaam_...`) – erstellen unter: BEAAM Web-UI → Einstellungen → API
 - Folgende `input_number` Helfer müssen bereits in HA vorhanden sein:
-  - `input_number.arbeitspreis` (€/kWh)
-  - `input_number.einspeiseverguetung` (€/kWh)
-  - `input_number.anlagenkosten` (€)
+  - `input_number.arbeitspreis` (€/kWh) – aktueller Strompreis
+  - `input_number.einspeiseverguetung` (€/kWh) – Einspeisevergütung (20-Jahre-Festpreis)
+  - `input_number.anlagenkosten` (€) – Installationskosten für Amortisationsberechnung
+
+---
+
+## 📁 Dateistruktur
+
+```
+config/
+├── packages/
+│   ├── neoom.yaml          ← REST-Sensoren + Template-Sensoren + Notstromreserve
+│   ├── neoom_costs.yaml    ← Utility Meter + Einsparungs-Sensoren
+│   └── strom.yaml          ← Eingefrorene Tagespreise (für korrekte Tagesberechnung)
+├── secrets.yaml            ← API Token eintragen
+```
 
 ---
 
 ## 🚀 Installation
 
-### 1. Token in secrets.yaml eintragen
+**1. Token in secrets.yaml eintragen**
 
 ```yaml
-# secrets.yaml
 neoom_beaam_token: "Bearer sk_beaam_DEIN_TOKEN_HIER"
 ```
 
-### 2. Package einbinden
+**2. Packages einbinden**
 
 ```yaml
 # configuration.yaml
 homeassistant:
-  packages:
-    neoom: !include packages/neoom.yaml
+  packages: !include_dir_named packages
 ```
 
-### 3. Dateien kopieren
+**3. Dateien in `/config/packages/` ablegen**
 
-```
-config/
-├── packages/
-│   └── neoom.yaml                  ← Haupt-Konfiguration (REST-Sensoren + Templates)
-├── secrets.yaml                    ← Token eintragen
-```
+- `neoom.yaml`
+- `neoom_costs.yaml`
+- `strom.yaml`
 
-Inhalte aus `neoom_einsparungs_sensoren.yaml` und `neoom_notstrom_config.yaml` in `packages/neoom.yaml` einfügen (siehe Abschnitt [Dateiübersicht](#dateiübersicht)). Bitte auf die richtige IP und Thing-IDs in den YAML-Dateien achten.
+**4. HA neu starten**
 
-### 4. HA neu starten
+**5. Dashboard einrichten**
 
-```
-Einstellungen → System → Neu starten
-```
-
-### 5. Dashboard einrichten
-
-1. HA → Dashboards → „+" → Leeres Dashboard erstellen
+1. HA → Dashboards → „+" → Leeres Dashboard
 2. Oben rechts ⋮ → „Dashboard bearbeiten" → ⋮ → „Roh-Konfigurations-Editor"
-3. Inhalt aus `neoom_dashboard.yaml` einfügen und speichern
+3. Inhalt aus `neoom_dashboard.yaml` einfügen
 
 ---
 
 ## 🖥️ Dashboard
-Das Dashboard besteht aus **5 Views**:
 
 | View | Inhalt |
 |------|--------|
-| ⚡ Echtzeit | PV-Leistung, Hausverbrauch, Netz, Batterie, Autarkie-Gauge, Zählerstand |
-| ☀️ DC Strings | String 1 & 2 mit Spannung, Strom, Leistung, Auslastung (% von Wp) |
-| 💰 Einsparungen | Ersparnis, Erlöse, Amortisation, monatliche Rücklage, Energiezähler |
+| ⚡ Echtzeit | PV-Leistung, Hausverbrauch, Netz, Batterie, Autarkie, Zählerstand |
+| ☀️ DC Strings | String 1 & 2: Spannung, Strom, Leistung, Auslastung (% von Wp) |
+| 💰 Einsparungen | Ersparnis Heute/Monat/Vormonat/Gesamt, Amortisation, Energiezähler |
 | 🔋 Batterie | Notstromreserve-Slider, SOC, Spannung, Strom, Verlauf |
 | 🔌 Netzzähler | Wirkleistung, Phasen L1/L2/L3, Spannungen, Frequenz, Verlauf |
-
-
-<table>
-  <tr>
-    <td><img src="Sample/Echtzeit.png" width="400"/></td>
-    <td><img src="Sample/DC-Strings.png" width="400"/></td>
-  </tr>
-  <tr>
-    <td><img src="Sample/Batterie.png" width="400"/></td>
-    <td><img src="Sample/Netzzähler.png" width="400"/></td>
-  </tr>
-</table>
-
 
 ---
 
@@ -128,7 +117,7 @@ Das Dashboard besteht aus **5 Views**:
 | `sensor.neoom_batterie_leistung` | Batterie (+ Laden / − Entladen) | W |
 | `sensor.neoom_batterie_ladestand` | State of Charge | % |
 | `sensor.neoom_autarkie` | Autarkie | % |
-| `sensor.neoom_energie_erzeugt` | Erzeugte Energie gesamt | Wh |
+| `sensor.neoom_energy_erzeugt` | Erzeugte Energie gesamt | Wh |
 | `sensor.neoom_energie_eingespeist` | Eingespeiste Energie gesamt | Wh |
 | `sensor.neoom_energie_bezogen` | Netzbezug gesamt | Wh |
 | `sensor.neoom_batterie_geladen` | Batterie geladen gesamt | Wh |
@@ -145,47 +134,45 @@ Das Dashboard besteht aus **5 Views**:
 | `sensor.neoom_string_1_auslastung` | String 1 Auslastung (% von 3.115 Wp) | % |
 | `sensor.neoom_string_2_*` | analog String 2 (max 6.675 Wp) | — |
 
-Bei den DC-String-Sensoren muss ggf. die Peak-Leistung angepasst werden, also 3115 und 6675 Wp gilt nur für meine Strings ;-)
+---
 
-```yaml
-# neoom.yaml
-        # ── String Auslastung ────────────────────────────────────────────────────
-      - name: "Neoom String 1 Auslastung"
-        unique_id: "neoom_string1_auslastung"
-        state: >
-          {% set leistung = states('sensor.neoom_string_1_leistung') | float(0) %}
-          {{ [(leistung / 3115 * 100) | round(1), 100] | min }}
-        unit_of_measurement: "%"
-        icon: "mdi:percent"
-        state_class: measurement
+## 💰 Einsparungsberechnung
 
-      - name: "Neoom String 2 Auslastung"
-        unique_id: "neoom_string2_auslastung"
-        state: >
-          {% set leistung = states('sensor.neoom_string_2_leistung') | float(0) %}
-          {{ [(leistung / 6675 * 100) | round(1), 100] | min }}
-        unit_of_measurement: "%"
-        icon: "mdi:percent"
-        state_class: measurement
+### Architektur
+
+```
+REST-Sensor (Wh, total_increasing)
+    ↓ utility_meter (daily / monthly / kein cycle)
+    ↓ × Preis im Template-Sensor
+= EUR (Heute / Monat / Vormonat / Gesamt)
 ```
 
-### Einsparungen (Template-Sensoren)
+### Preislogik
 
-| Entity | Beschreibung | Einheit |
-|--------|-------------|---------|
-| `sensor.neoom_ersparnis_eigenverbrauch` | Ersparnis durch Eigenverbrauch | EUR |
-| `sensor.neoom_erloese_einspeisung` | Erlöse aus Einspeisung | EUR |
-| `sensor.neoom_ersparnis_gesamt` | Gesamtersparnis | EUR |
-| `sensor.neoom_amortisation_prozent` | Amortisationsfortschritt | % |
-| `sensor.neoom_ruecklage_monat` | Empfohlene monatliche Rücklage | EUR |
-| `sensor.neoom_notstrom_reserve_kwh` | Notstromreserve in kWh | kWh |
-| `sensor.neoom_optimierung_kwh` | Verfügbar für Optimierung | kWh |
+| Zeitraum | Strompreis | Einspeisepreis |
+|---|---|---|
+| Heute | `sensor.strompreis_heute_eingefroren` | `sensor.einspeisevergutung_heute_eingefroren` |
+| Diesen Monat | `input_number.arbeitspreis` | `input_number.einspeiseverguetung` |
+| Vormonat | `last_period` der Monats-Meter × aktueller Preis | — |
+| Gesamt | `input_number.arbeitspreis` | `input_number.einspeiseverguetung` |
+
+Der eingefrorene Tagespreis (`strom.yaml`) verhindert dass Tarifänderungen vergangene Tageswerte rückwirkend verändern.
+
+### Historische Korrektur (Offset)
+
+Falls die Sensoren nicht von Anfang an liefen, können fehlende Beträge über Offset-Helfer nachgetragen werden:
+
+```yaml
+input_number:
+  neoom_ersparnis_eigenverbrauch_offset:
+    initial: 848.18   # fehlender Betrag in EUR
+  neoom_erloese_einspeisung_offset:
+    initial: 274.00
+```
 
 ---
 
 ## 🔋 Notstromreserve steuern
-
-Die Notstromreserve kann direkt über einen Dashboard-Slider gesetzt werden. Bitte die Gesamtkapazität der Batterie anpassen. Die aktuelle Konfiguration ist für 2 Batteriemodule
 
 ### Technische Details
 
@@ -196,18 +183,32 @@ Die Notstromreserve kann direkt über einen Dashboard-Slider gesetzt werden. Bit
 | Formel | `API-Wert = gewünschte Reserve (%) + 8 (Systemreserve)` |
 | Bereich | 0 – 92 % (8 % Systemreserve fest eingebaut) |
 
-> ⚠️ **Wichtig:** Der `/states` POST-Endpoint wird vom Gerät akzeptiert aber ignoriert.
-> Nur `/commands` schreibt den Wert tatsächlich ans Gerät.
-
-> ⚠️ **Wichtig:** `MIN_SOC` ist **nicht** die Notstromreserve – das ist die interne Systemreserve.
-> Der korrekte Key ist `MIN_SOC_SELF_CONSUMPTION_OPT`.
-
 ### Funktionsweise
 
 1. Dashboard-Slider (`input_number.neoom_notstrom_reserve`) auf gewünschten Wert stellen
-2. HA-Automation erkennt Änderung und addiert automatisch 8 (Systemreserve)
+2. HA-Automation addiert automatisch 8 (Systemreserve)
 3. `rest_command` sendet korrekten Wert an `/commands` Endpoint
-4. Neoom App und BEAAM zeigen den neuen Wert sofort
+4. Neoom App zeigt den neuen Wert sofort
+
+> ⚠️ **Wichtig:** Nur `/commands` schreibt tatsächlich ans Gerät – `/states` POST wird akzeptiert aber vom Gerät ignoriert.
+
+> ⚠️ **Wichtig:** `MIN_SOC` ist **nicht** die Notstromreserve – das ist die interne Systemreserve. Der korrekte Key ist `MIN_SOC_SELF_CONSUMPTION_OPT`.
+
+---
+
+## 📅 Tages- und Monatswerte
+
+Alle Energiewerte werden über `utility_meter` direkt aus den REST-Sensoren berechnet – kein Reboot-Problem da HA `unavailable` automatisch ignoriert.
+
+| Sensor | Beschreibung |
+|--------|-------------|
+| `sensor.neoom_produktion_taeglich` | Produktion heute (Wh) |
+| `sensor.neoom_produktion_monatlich` | Produktion diesen Monat (Wh) |
+| `sensor.neoom_produktion_vormonat` | Produktion letzter Monat via `last_period` (Wh) |
+| `sensor.neoom_ersparnis_eigenverbrauch_heute` | Ersparnis heute (EUR) |
+| `sensor.neoom_ersparnis_gesamt_monat` | Ersparnis diesen Monat (EUR) |
+| `sensor.neoom_ersparnis_gesamt_vormonat` | Ersparnis letzter Monat (EUR) |
+| `sensor.neoom_ersparnis_gesamt` | Ersparnis gesamt seit Inbetriebnahme (EUR) |
 
 ---
 
@@ -215,35 +216,25 @@ Die Notstromreserve kann direkt über einen Dashboard-Slider gesetzt werden. Bit
 
 | Eigenheit | Details |
 |-----------|---------|
-| **Read-only Endpoint** | `GET /api/v1/things/{id}/states` – nur lesend |
 | **Write Endpoint** | `POST /api/v1/things/{id}/commands` – schreibend (nicht `/states`!) |
 | **OPTIONS/PUT/PATCH** | Alle geben 404 zurück |
+| **POST /states** | Wird akzeptiert (200 OK) aber vom Gerät still ignoriert |
 | **String-Leistung** | Kein `INPUTS_POWER` Key – Leistung muss berechnet werden: P = U × I |
 | **Array-Zugriff** | `VOLTAGES` und `CURRENTS` sind `NUMBER_ARRAY` → Zugriff via `arr[0][0]` / `arr[0][1]` |
-| **Umlaute in Namen** | HA generiert entity_ids aus dem `name`-Feld – Umlaute führen zu unerwarteten IDs (z.B. `erl_se` statt `erloese`) → immer ASCII verwenden |
-| **Verkettete Templates** | Template-Sensoren die andere Template-Sensoren referenzieren liefern falsche Werte → alle Berechnungen direkt inline |
-| **Statistic Cards** | Benötigen `state_class: total_increasing` und sammeln erst ab Einrichtung Daten → `entity`-Cards als sofortige Alternative |
+| **Umlaute in Namen** | HA generiert entity_ids aus dem `name`-Feld – Umlaute führen zu unerwarteten IDs → immer ASCII verwenden |
+| **Verkettete Templates** | Template-Sensoren die andere Template-Sensoren referenzieren liefern beim Reboot falsche Werte → alle Berechnungen direkt inline |
+| **utility_meter Quelle** | Nur `total_increasing` REST-Sensoren als Quelle verwenden – Template-Sensoren mit täglichem Reset führen zu falschen Monatssummen |
+| **Notstromreserve Offset** | App zeigt `MIN_SOC_SELF_CONSUMPTION_OPT - 8` an – die 8% Systemreserve wird intern abgezogen |
 
 ---
 
-## 📁 Dateiübersicht
-
-| Datei | Inhalt | Einbinden |
-|-------|--------|-----------|
-| `neoom_beaam_configuration.yaml` | REST-Sensoren (5 Blöcke) + Template-Sensoren | Als Package in `configuration.yaml` |
-| `neoom_einsparungs_sensoren.yaml` | Einsparungs- & Auslastungs-Sensoren | Unter `template: - sensor:` in `neoom.yaml` anhängen |
-| `neoom_notstrom_config.yaml` | `input_number`, `rest_command`, Automation | Auf oberster Ebene in `neoom.yaml` einfügen |
-| `neoom_dashboard.yaml` | Lovelace Dashboard (5 Views) | Im Roh-Konfigurations-Editor einfügen |
-
----
-
-## 📐 Thing-IDs (Beispiel – anpassen!)
+## 📐 Thing-IDs (anpassen!)
 
 ```yaml
-PV-Thing:       cf2735a5-028b-4a4d-a017-60ebe066067f
-Inverter:       0e07029a-cc69-493d-a6fe-cffcbd1b0561
-Batterie:       0eb84721-5482-4ad4-9e57-4c26d6ee2229
-Netzzähler:     51071d8d-3663-4799-8652-00452be62b0a
+PV-Thing:   cf2735a5-028b-4a4d-a017-60ebe066067f
+Inverter:   0e07029a-cc69-493d-a6fe-cffcbd1b0561
+Batterie:   0eb84721-5482-4ad4-9e57-4c26d6ee2229
+Netzzähler: 51071d8d-3663-4799-8652-00452be62b0a
 ```
 
 Thing-IDs abrufen:
@@ -258,6 +249,9 @@ curl http://192.168.X.X/api/v1/site/configuration \
 
 MIT License – frei verwendbar, anpassbar und weiterzugeben.
 
+---
+
+*Entwickelt mit [Claude](https://claude.ai) · Getestet mit Neoom BEAAM + Home Assistant 2026.x*
 ---
 <a href="https://www.buymeacoffee.com/vmaddin" target="_blank">
   <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" width="200">
