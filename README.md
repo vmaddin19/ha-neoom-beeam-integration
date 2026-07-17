@@ -250,7 +250,6 @@ curl http://192.168.X.X/api/v1/site/configuration \
 MIT License – frei verwendbar, anpassbar und weiterzugeben.
 
 ---
-
 *Entwickelt mit [Claude](https://claude.ai) · Getestet mit Neoom BEAAM + Home Assistant 2026.x*
 ---
 <a href="https://www.buymeacoffee.com/vmaddin" target="_blank">
